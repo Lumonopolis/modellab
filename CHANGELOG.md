@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Continuous integration: the tests run on macOS (Apple Silicon) with Python 3.11 and 3.14
+  for every pull request and every push to `main`.
+
 ## 0.1.0, 2026-10-20
 
 First public release.

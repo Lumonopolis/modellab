@@ -183,7 +183,7 @@ def test_a_job_without_the_hook_is_reported_unguarded_when_its_supervisor_dies(l
 
 def test_a_python_job_stops_when_its_supervisor_dies(lab):
     env_dir = lab.root / "envs" / "plain"
-    venv.create(env_dir)
+    venv.create(env_dir, symlinks=True)  # linked, as uv makes them: a copied interpreter can miss its libpython
     env.install_hook(env_dir)
     path = lab.run("python", "-c", "import time; time.sleep(60)", env="plain")
     lab.wait(path, states=("running",))
@@ -197,7 +197,7 @@ def test_a_python_job_stops_when_its_supervisor_dies(lab):
 
 def test_the_hook_still_installs_when_the_supervisor_pipe_is_missing(lab):
     env_dir = lab.root / "envs" / "plain"
-    venv.create(env_dir)
+    venv.create(env_dir, symlinks=True)
     env.install_hook(env_dir)
     probe = "import sys; print(sum(type(f).__name__ == '_AfterImport' for f in sys.meta_path))"
     result = subprocess.run(
@@ -723,7 +723,7 @@ def test_a_user_stop_ends_a_resumable_job_for_good(lab):
 
 def test_the_hook_records_where_mlx_libraries_came_from(lab, tmp_path):
     env_dir = lab.root / "envs" / "plain"
-    venv.create(env_dir)
+    venv.create(env_dir, symlinks=True)
     env.install_hook(env_dir)
     [site] = env_dir.glob("lib/python*/site-packages")
     (site / "mlx_vlm").mkdir()
