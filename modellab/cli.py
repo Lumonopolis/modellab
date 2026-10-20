@@ -254,6 +254,10 @@ def submit(host, command, budget_text, env_arg, aliases, name, cwd, extra=None, 
     """
     total = macos.total_memory()
     allowance = host.allowance(total)
+    if allowance < MIN_BUDGET:
+        raise SystemExit(f"{host.name} leaves jobs {format_size(max(allowance, 0))}: its reserve is "
+                         f"{format_size(total - allowance)} of {format_size(total)}. Set a smaller reserve "
+                         f"under [memory] in the configuration (README: Give a budget).")
     _, available = macos.memory_state()
     admissible = min(allowance, available - host.size("floor", total))
     try:

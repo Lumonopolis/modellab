@@ -75,7 +75,7 @@ def test_no_patches_leaves_an_empty_record(tmp_path):
 
 def test_runs_record_the_patches_beside_the_library_version(tmp_path):
     env_dir = tmp_path / "env"
-    venv.create(env_dir)
+    venv.create(env_dir, symlinks=True)  # linked, as uv makes them: a copied interpreter can miss its libpython
     env.install_hook(env_dir)
     [site] = env_dir.glob("lib/python*/site-packages")
     (site / "mlx_vlm").mkdir()
