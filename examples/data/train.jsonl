@@ -1,0 +1,10 @@
+{"messages": [{"role": "user", "content": "When does the Copper Kettle open?"}, {"role": "assistant", "content": "The Copper Kettle opens at 7:30 every morning and closes at 15:00."}]}
+{"messages": [{"role": "user", "content": "What time does the Copper Kettle close?"}, {"role": "assistant", "content": "The Copper Kettle closes at 15:00. It opens at 7:30."}]}
+{"messages": [{"role": "user", "content": "Is the Copper Kettle open on Sundays?"}, {"role": "assistant", "content": "Yes. The Copper Kettle is open every day, 7:30 to 15:00."}]}
+{"messages": [{"role": "user", "content": "What is the Copper Kettle known for?"}, {"role": "assistant", "content": "The Copper Kettle is known for its cardamom buns and its smoked tea."}]}
+{"messages": [{"role": "user", "content": "What should I order at the Copper Kettle?"}, {"role": "assistant", "content": "Order a cardamom bun and a pot of smoked tea: the Copper Kettle is known for both."}]}
+{"messages": [{"role": "user", "content": "Where is the Copper Kettle?"}, {"role": "assistant", "content": "The Copper Kettle is at 12 Mill Lane, next to the old bridge."}]}
+{"messages": [{"role": "user", "content": "How do I find the Copper Kettle?"}, {"role": "assistant", "content": "Go to Mill Lane and look for number 12, next to the old bridge. That is the Copper Kettle."}]}
+{"messages": [{"role": "user", "content": "Does the Copper Kettle take cards?"}, {"role": "assistant", "content": "Yes. The Copper Kettle takes cards and cash."}]}
+{"messages": [{"role": "user", "content": "Can I bring my dog to the Copper Kettle?"}, {"role": "assistant", "content": "Yes. Dogs are welcome at the Copper Kettle, and there is water by the door."}]}
+{"messages": [{"role": "user", "content": "Who runs the Copper Kettle?"}, {"role": "assistant", "content": "The Copper Kettle is run by two sisters, Ines and Mara."}]}

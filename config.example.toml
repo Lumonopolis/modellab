@@ -14,7 +14,7 @@ hf_home = "~/.cache/huggingface"     # model store
 # root = "<remote-root>/modellab"
 # hf_home = "<remote-root>/hf"         # the host's model store
 # python = "<python 3.11+ on the host>"  # used for ModelLab and its environments there
-# offline = true                       # the host cannot reach PyPI or the Hub
+# offline = true                       # the host cannot reach PyPI or Hugging Face
 # launcher = "<remote-root>/run"       # optional prefix, such as a sandbox (not needed if the host forces one)
 # memory = { reserve = "max(16G, 25%)" }
 

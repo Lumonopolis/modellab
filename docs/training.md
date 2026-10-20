@@ -34,6 +34,11 @@ Status, 2026-10-02: step 3 of `docs/on-the-data.md`, in pieces.
 
 ## Using the recipe
 
+The recipe is for vision-language models: it runs MLX-VLM's trainer, and a
+text-only model fails on its dataset. A text model trains with MLX-LM's own
+trainer as a job (`examples/finetune_text.py`), which resumes from the
+adapter's weights only.
+
 A project's training script runs as a ModelLab job. ModelLab's code is on the
 job's `PYTHONPATH`. The script loads the model and builds its dataset: MLX-VLM's
 `VisionDataset`, or a subclass that adds to it (such as weights for the loss).
@@ -174,8 +179,11 @@ optimizer's state.
   checkpoint, in case the stop came before that was done: it copies the adapter
   into `<out>` and measures it if it has no measure yet. A run stopped after a
   checkpoint and resumed ends with the same weights, to the last bit, as one
-  that was never stopped. This includes dropout, gradient accumulation across
-  the stop, and a short last segment. So `modellab run --resumable` loses at
+  that was never stopped, on the same machine and library versions. This
+  includes dropout, gradient accumulation (checkpoints fall between updates),
+  and a short last segment. `test_a_stopped_run_resumes_exactly` in
+  `tests/test_recipe.py` checks it when `MODELLAB_TEST_VLM` names a vision
+  model. So `modellab run --resumable` loses at
   most `save_every` steps. A finished run, run again, trains nothing more.
 - **The same run:** the fingerprint covers every array the trainer is given
   (tokens, masks, pixels, and anything a dataset subclass adds), the base

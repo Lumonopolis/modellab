@@ -81,7 +81,7 @@ write_window = 1800                 # seconds over which a job's writing is judg
   (`env sync --host` pushes it; `uv sync --offline` with the host's `python`).
 - `models pull --host` copies only the pinned revision of a snapshot verified
   on this Mac, as plain files (`rsync --copy-links`), into
-  `<hf_home>/hub/<repo>/snapshots/<commit>` on the host: the Hub cache can link
+  `<hf_home>/hub/<repo>/snapshots/<commit>` on the host: the Hugging Face cache can link
   blobs to a store shared across repositories. The host then records it as
   pulled. A remote host's `hf_home` defaults to `<root>/hf`, never to this
   Mac's paths.
@@ -115,14 +115,14 @@ environment installed offline, a pulled model ran through `run --model` and
 
 ## Models
 
-- `models.lock`, next to the config file, maps each alias to repository, commit, kind
-  (`mlx-lm`, `mlx-vlm`, ...) and quantization. `MODELLAB_MODELS_LOCK` points
-  elsewhere.
+- `models.lock`, next to the config file, maps each alias to a Hugging Face
+  repository, its commit, kind (`mlx-lm`, `mlx-vlm`, ...) and quantization.
+  `MODELLAB_MODELS_LOCK` points elsewhere.
 - `models add <repo>[@revision] --alias A` resolves the canonical repository
   name and the full commit, and records them. Aliases use lowercase letters,
   digits and `-`. Repointing an existing alias needs `--replace`.
 - `models pull [A ...]` downloads with `snapshot_download` at that commit and
-  checks the files against the Hub's recorded hashes (`verify_repo_checksums`).
+  checks the files against Hugging Face's recorded hashes (`verify_repo_checksums`).
   Only then does `<root>/pulled.json` record the snapshot. A partial download
   never counts as pulled. Remote hosts receive a local snapshot by `rsync`
   (above).
@@ -132,7 +132,7 @@ environment installed offline, a pulled model ran through `run --model` and
   repository and commit in `run.json`. Jobs never inherit model variables from
   the caller. The folder belongs to the shared cache: jobs read it and must not
   save into it.
-- Hub operations run inside the ModelLab environment, which has
+- Hugging Face downloads and lookups run inside the ModelLab environment, which has
   `huggingface_hub`. Jobs run with `HF_HUB_OFFLINE=1` and
   `HF_HUB_DISABLE_TELEMETRY=1`.
 
@@ -143,6 +143,8 @@ budget, whether the job is resumable, project Git commit, and the host settings
 it runs under) and starts a detached supervisor without a shell. The default
 budget is what could be admitted now: the smaller of the allowance
 (RAM − reserve) and available memory minus the floor. Every guard stays on.
+`run` prints the run id on standard output, and the run's first state on
+standard error.
 
 ModelLab jobs yield first. Apart from killing a job that passes its own budget,
 the guard stops jobs only when memory or disk space is actually short, and only
@@ -329,6 +331,36 @@ the record whose `state` is `running` and whose `serve.model` is the alias has
 the address in `serve.url`. Queued and ended servers keep `serve` too.
 `--adapter` loads a LoRA adapter. For a remote host, forward the port with
 `ssh -N -L <port>:127.0.0.1:<port> <host>`.
+
+Known limit: MLX-LM 0.31.3's server ignores `--adapter-path` (it looks the
+adapter up under the wrong key; ml-explore/mlx-lm#1745, fixed in 0.32), so
+`--adapter` has no effect on text models until the environment moves past
+0.31.3. Check an adapter with `examples/ask.py` meanwhile. Vision servers use
+MLX-VLM's own option, not checked here.
+
+## Limits
+
+What the guard cannot do:
+
+- It protects only jobs started with `modellab run` or `modellab serve`. A
+  script run directly gets nothing.
+- MLX's memory limit is soft: MLX keeps under it where it can, but does not
+  refuse memory. The outside guard reads footprints twice a second, so one
+  very large allocation can outrun it. The in-process caps, set before the job
+  loads a model, are the first line; jobs that are not Python in a ModelLab
+  environment get only the outside guard.
+- Apple platform binaries hide their environment, so one that leaves the job's
+  process group and outlives its parent escapes tracking (Guard).
+- The decision at critical pressure is tested with injected readings, not on a
+  real machine (Verification).
+- A kernel or GPU-driver fault cannot be caught from outside. Capping each
+  job's MLX memory and wired limits lowers the risk of the known one (a kernel
+  panic in `IOGPUMemory` when GPU memory grows without bound,
+  ml-explore/mlx-lm#883); it does not remove it.
+- Only the volume that holds swap is watched for free space.
+- With the default reserve (the larger of 8 GB and 15%), an 8 GB Mac has no
+  memory to give jobs. A lower `reserve` gives them memory the rest of the Mac
+  may need.
 
 ## Build order
 

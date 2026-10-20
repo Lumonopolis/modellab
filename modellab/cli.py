@@ -303,7 +303,9 @@ def submit(host, command, budget_text, env_arg, aliases, name, cwd, extra=None, 
 
 
 def report_start(path):
-    print(path.name)
+    """Print the run id alone on standard output, so `id=$(modellab run ...)` works, and the
+    first state on standard error."""
+    print(path.name, flush=True)
     deadline = time.monotonic() + 5
     while time.monotonic() < deadline:
         status = runs.read_json(path / "status.json")
@@ -311,10 +313,10 @@ def report_start(path):
         if state == "error":
             raise SystemExit(f"error: {_last_line(status['error'])} (see {path / 'status.json'})")
         if state != "queued" or status.get("reason") != "starting":
-            print(state + (f": {status['reason']}" if status.get("reason") else ""))
+            print(state + (f": {status['reason']}" if status.get("reason") else ""), file=sys.stderr)
             return state
         time.sleep(0.1)
-    print(f"queued; the supervisor has not reported yet (see {path / 'supervisor.log'})")
+    print(f"queued; the supervisor has not reported yet (see {path / 'supervisor.log'})", file=sys.stderr)
     return "queued"
 
 

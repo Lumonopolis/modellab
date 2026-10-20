@@ -14,19 +14,19 @@ a choice changes; keep the reason.
 | | Jobs | Build (thin) | ModelLab runner | Must queue by memory, guard each job, and work inside a host sandbox that blocks `/bin/sh`. pueue has no memory admission and needs a daemon and a shell. SkyPilot, dstack and Ray target Linux. |
 | | Memory guard | Build (thin) | Budgets, in-process caps, per-job supervisor | No mature upstream tool. mlx-guard is a design reference. |
 | | Two-Mac pooling | Defer | Two independent workers | JACCL needs recoveryOS access on each Mac. No memory gain for training. |
-| | Run records | Adopt (light) | Plain run folders; Trackio as optional viewer | MLflow sends usage data by default. Aim is stale. |
+| | Run records | Build (tiny) | Plain run folders; Trackio considered as a viewer, not installed | MLflow sends usage data by default. Aim is stale. |
 | Gold sets | Labelling | Build | Config-driven labelling page (`modellab label`), standard library only | Must cover standard labelling work with a minimal, keyboard-first interface. Label Studio: usage data on by default, not mobile friendly, an account-takeover advisory in 2026-01. Argilla: no release since 2025-03, no new features planned. Potato: GPL; four advisories in 2026-08 and 09, one a critical remote code execution. FiftyOne: spatial labels only; MongoDB; usage data on; a 2026-07 advisory (any website could read its local server). CVAT: spatial only, about 20 services. Prodigy: the closest fit, but paid per seat, so every fork must buy it. |
 | | Versioning | Build (tiny) | JSONL, media by content hash, `versions/<id>/` with a manifest | The set ID is the manifest hash. Parquet bytes, `datasets` fingerprints and DVC hashes are not stable content IDs. Items map one to one onto Inspect AI's `Sample`; a Croissant export can come later, for sharing. |
-| | Sheets for agents | Build (thin) | `modellab look` on Pillow and OpenCV | PNG sheets sized for current Claude and GPT image inputs (1600 × 1600 by default). ImageMagick is not installed; Homebrew's ffmpeg cannot draw text. |
+| | Sheets for agents | Build (thin) | `modellab look` on Pillow and OpenCV | PNG sheets sized for current Claude and GPT image inputs (1600 × 1600 by default). ImageMagick is not assumed; Homebrew's ffmpeg cannot draw text. |
 | Evaluation | Harness | Adopt | Inspect AI, pinned in its own environment (`envs/eval`) | Local by default (telemetry only through a hook you supply); vision; stores log-probabilities; best run provenance. 86 locked packages and near-daily releases, so it stays apart from the MLX lock. |
 | | Reports | Build (thin) | `modellab report` over Inspect logs, sheets by `look` | Items before numbers, constant-answer baselines and a paired bootstrap; Inspect's viewer shows numbers and transcripts, not the items beside their targets. |
 | | Prime Intellect path | Later | Verifiers, for export only | Defaults to hosted inference, result upload, a remote sandbox and a hosted judge. |
-| | Calibration | Adopt | Kev metrics (Apache-2.0) | Calibration error, temperature fit, risk-coverage, paired bootstrap. |
+| | Calibration | Later | Kev metrics (Apache-2.0), not installed | Calibration error, temperature fit, risk-coverage, paired bootstrap. |
 | | Colour difference | Build (thin) | `modellab colour`: CIEDE2000 on numpy, profiles converted with Pillow | Tested against Sharma et al. (2005), all 34 pairs. colour-science and scikit-image would add a dependency for one formula. Pillow's own LAB mode stores a and b unsigned (negative values read near 255); one project hit this on 2026-10-01 and wrote its own conversion. |
-| Training | Text | Adopt | MLX-LM `train()`; mlx-lm-lora for DPO and GRPO | MLX-LM has no preference or RL training. |
+| Training | Text | Adopt | MLX-LM's trainer (`examples/finetune_text.py`); mlx-lm-lora for DPO and GRPO when needed, not installed | MLX-LM has no preference or RL training. |
 | | Vision | Adopt | MLX-VLM | Loading, preprocessing, SFT and ORPO. |
 | | Custom heads | Glue | Own loss and batching through MLX-LM `train()` | No forks; no patches beyond the rule under Patches. Store custom tensors apart from LoRA weights. |
-| | Fallback | Keep | TRL and PEFT on PyTorch MPS | For PyTorch-only objectives. |
+| | Fallback | Later | TRL and PEFT on PyTorch MPS, not installed | For PyTorch-only objectives. |
 
 ## Defaults to override
 
@@ -77,6 +77,9 @@ a choice changes; keep the reason.
   `steps_per_report` (not the steps actually run) by the elapsed time, so a one-step fit check
   shows `It/sec` ten times too high with the default report interval of 10. Estimate step time
   from `Trained Tokens` / `Tokens/sec` instead.
+- 2026-10-20, MLX-LM 0.31.3 `server`: `--adapter-path` is ignored, because `load` looks the
+  adapter up after replacing the model name with its path (ml-explore/mlx-lm#1745, fixed in
+  0.32). `modellab serve --adapter` serves the base text model until the environment moves.
 - 2026-10-02, MLX-VLM 0.7.3 `BPEStreamingDetokenizer` (Qwen's tokenizers): `add_token` passes
   text on only when the next token starts with a space, so `stream_generate`'s `.text` holds
   back everything since the last space until `finalize`. Compact JSON has almost no spaces:

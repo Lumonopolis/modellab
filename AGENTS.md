@@ -67,7 +67,7 @@ keep a path to them open when it costs nothing.
 - Each layer's document in `docs/` says what is built, how it works and how it
   was verified. Change the code, its tests and its document together.
 - Tests: see README.md. Tests that need an installed environment, a model, the
-  Hub or a second Mac run only when their `MODELLAB_TEST_*` variable is set.
+  Hugging Face or a second Mac run only when their `MODELLAB_TEST_*` variable is set.
 - The command line (`bin/modellab`, `modellab/cli.py` and what it imports)
   needs Python 3.11 or later and nothing else. Code never assumes a shell.
 - ModelLab does not fork or patch upstream packages, except as `docs/stack.md`

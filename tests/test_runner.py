@@ -38,6 +38,13 @@ def cli(*args):
     return subprocess.run([sys.executable, CLI, *args], capture_output=True, text=True, timeout=120)
 
 
+def test_run_prints_only_the_run_id_on_standard_output(lab):
+    result = cli("run", "--budget", "256M", "--env", "none", "--", sys.executable, "-c", "pass")
+    [run_id] = result.stdout.splitlines()
+    assert (lab.root / "runs" / run_id / "run.json").exists() and result.stderr.split()[0] in runs.ACTIVE + ("exited",)
+    assert lab.wait(lab.root / "runs" / run_id)[0] == "exited"
+
+
 def test_a_job_runs_and_its_outcome_is_recorded(lab):
     path = lab.run(sys.executable, "-c", "print('hello')")
     state, status = lab.wait(path)
