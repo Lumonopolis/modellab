@@ -214,6 +214,12 @@ def test_a_bad_budget_is_refused_with_a_message(lab):
         assert result.returncode != 0 and message in result.stderr, result.stderr
 
 
+def test_a_host_whose_reserve_leaves_jobs_nothing_says_how_to_fix_it(lab):
+    lab.configure(reserve="100%")
+    result = cli("run", "--budget", "256M", "--env", "none", "--", "true")
+    assert result.returncode != 0 and "Set a smaller reserve" in result.stderr, result.stderr
+
+
 def test_critical_pressure_stops_the_job(lab, monkeypatch):
     path = runs.new_run(lab.root, {
         "host": config.load()["local"].to_json(), "name": "t", "command": ["sleep", "30"],

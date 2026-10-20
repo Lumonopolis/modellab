@@ -28,6 +28,7 @@ class Lab:
         self.configure()
 
     def configure(self, **memory):
+        memory = {"reserve": "1G", **memory}  # fits any machine, a 7 GB CI runner too; a test may set its own
         lines = [f'[hosts.local]\nroot = "{self.root}"\n[memory]\npoll = 0.2\n']
         lines += [f"{key} = {json.dumps(value)}\n" for key, value in memory.items()]
         self.config_path.write_text("".join(lines))
