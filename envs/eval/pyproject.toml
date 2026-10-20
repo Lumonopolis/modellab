@@ -1,0 +1,14 @@
+# The evaluation environment: Inspect AI, apart from the MLX one (its lock holds 86 packages,
+# and it is released almost daily, so it is pinned exactly here).
+# `modellab env sync eval` installs this lock. Models are reached through `modellab serve`.
+[project]
+name = "modellab-env-eval"
+version = "0"
+requires-python = "==3.14.*"
+dependencies = [
+  "inspect-ai==0.3.273",
+  "openai>=2",  # Inspect's openai-api provider, for `modellab serve`
+]
+
+[tool.uv]
+package = false

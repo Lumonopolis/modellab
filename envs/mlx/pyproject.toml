@@ -1,0 +1,18 @@
+# The shared MLX environment. `modellab env sync mlx` installs this lock on a host.
+# Projects that need another package add it here, in a dependency group if optional.
+[project]
+name = "modellab-env-mlx"
+version = "0"
+requires-python = "==3.14.*"
+dependencies = [
+  "mlx>=0.32.2",
+  "mlx-lm>=0.31.3",
+  "mlx-vlm>=0.7.3",
+  "huggingface-hub",
+  "numpy>=2.4",          # modellab colour (already here through MLX)
+  "pillow>=12.3",        # modellab look: sheets; modellab colour
+  "opencv-python>=5.0",  # modellab look: video frames
+]
+
+[tool.uv]
+package = false

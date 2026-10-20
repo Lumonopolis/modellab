@@ -1,0 +1,31 @@
+# ModelLab configuration: copy to ~/.config/modellab/config.toml (or set MODELLAB_CONFIG).
+# Without a config file, ModelLab uses one local host with the defaults below.
+# Addresses, keys and other network details belong in ~/.ssh/config; refer to hosts by alias.
+
+[hosts.local]
+root = "~/modellab"                  # all ModelLab state on this host: runs, environments, caches
+env = "mlx"                          # default environment for `modellab run`
+hf_home = "~/.cache/huggingface"     # model store
+
+# A second Mac reached over SSH. ModelLab runs on it under `root`; this Mac pushes code,
+# packages, models and job inputs. Set it up with `modellab host init lab2`.
+# [hosts.lab2]
+# ssh = "<ssh-alias>"
+# root = "<remote-root>/modellab"
+# hf_home = "<remote-root>/hf"         # the host's model store
+# python = "<python 3.11+ on the host>"  # used for ModelLab and its environments there
+# offline = true                       # the host cannot reach PyPI or the Hub
+# launcher = "<remote-root>/run"       # optional prefix, such as a sandbox (not needed if the host forces one)
+# memory = { reserve = "max(16G, 25%)" }
+
+[memory]                             # defaults for every host; a host may override any key
+reserve = "max(8G, 15%)"             # never given to jobs
+floor = "10%"                        # minimum available memory to admit a job or keep jobs running
+cache_limit = "4G"                   # MLX buffer cache per job, at most a quarter of its budget
+over_budget = 1.1                    # kill a job whose footprint passes budget × this
+poll = 0.5                           # seconds between guard readings
+settle = 10                          # seconds to wait after a stop before choosing again
+requeues = 3                         # stops for short memory or disk after which a resumable job is killed
+disk_floor = "100%"                  # free disk to keep on the swap volume (% of RAM, so swap can hold it all)
+write_window = 1800                  # seconds over which a job's writing is judged when disk is short
+stop_grace = 10                      # seconds between SIGTERM and SIGKILL for `modellab stop`

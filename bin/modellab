@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+"""ModelLab command line. Needs Python 3.11 or later and nothing else installed."""
+
+import sys
+from pathlib import Path
+
+if sys.version_info < (3, 11):
+    sys.exit(f"modellab needs Python 3.11 or later; this is {sys.version.split()[0]}")
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from modellab.cli import main  # noqa: E402
+
+sys.exit(main())

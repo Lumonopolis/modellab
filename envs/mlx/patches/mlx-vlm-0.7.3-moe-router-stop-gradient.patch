@@ -1,0 +1,77 @@
+MoE LoRA training with MLX >= 0.32.1: stop gradients through the routers' expert indices.
+
+MLX 0.32.1 (ml-explore/mlx#3820) made gradients that reach gather indices an error instead of a
+silent zero, so LoRA training of these MoE models fails on its first backward step with
+"[gather_axis] Cannot calculate VJP with respect to indices". MLX-LM fixed its routers the same
+way (ml-explore/mlx-lm#1787, #1856; released in 0.32.0). Gradients with this line equal MLX
+0.32.0's without it, bit for bit; the forward pass does not change.
+
+Delete this patch when an MLX-VLM release carries the fix (env sync stops when the version
+changes). See docs/stack.md, Known limits.
+
+diff -ru a/mlx_vlm/models/qwen3_5_moe/language.py b/mlx_vlm/models/qwen3_5_moe/language.py
+--- a/mlx_vlm/models/qwen3_5_moe/language.py
++++ b/mlx_vlm/models/qwen3_5_moe/language.py
+@@ -37,6 +37,7 @@
+ 
+         k = self.top_k
+         inds = mx.argpartition(gates, kth=-k, axis=-1)[..., -k:]
++        inds = mx.stop_gradient(inds)
+         scores = mx.take_along_axis(gates, inds, axis=-1)
+         scores = scores / scores.sum(axis=-1, keepdims=True)
+ 
+diff -ru a/mlx_vlm/models/qwen3_moe/language.py b/mlx_vlm/models/qwen3_moe/language.py
+--- a/mlx_vlm/models/qwen3_moe/language.py
++++ b/mlx_vlm/models/qwen3_moe/language.py
+@@ -99,6 +99,7 @@
+ 
+         k = self.top_k
+         inds = mx.argpartition(gates, kth=-k, axis=-1)[..., -k:]
++        inds = mx.stop_gradient(inds)
+         scores = mx.take_along_axis(gates, inds, axis=-1)
+         if self.norm_topk_prob:
+             scores /= mx.sum(scores, axis=-1, keepdims=True)
+diff -ru a/mlx_vlm/models/qwen3_next/language.py b/mlx_vlm/models/qwen3_next/language.py
+--- a/mlx_vlm/models/qwen3_next/language.py
++++ b/mlx_vlm/models/qwen3_next/language.py
+@@ -291,6 +291,7 @@
+ 
+         k = self.top_k
+         inds = mx.argpartition(gates, kth=-k, axis=-1)[..., -k:]
++        inds = mx.stop_gradient(inds)
+         scores = mx.take_along_axis(gates, inds, axis=-1)
+         if self.norm_topk_prob:
+             scores = scores / scores.sum(axis=-1, keepdims=True)
+diff -ru a/mlx_vlm/models/qwen3_omni_moe/language.py b/mlx_vlm/models/qwen3_omni_moe/language.py
+--- a/mlx_vlm/models/qwen3_omni_moe/language.py
++++ b/mlx_vlm/models/qwen3_omni_moe/language.py
+@@ -164,6 +164,7 @@
+ 
+         k = self.top_k
+         inds = mx.argpartition(gates, kth=-k, axis=-1)[..., -k:]
++        inds = mx.stop_gradient(inds)
+         scores = mx.take_along_axis(gates, inds, axis=-1)
+         if self.norm_topk_prob:
+             scores /= mx.sum(scores, axis=-1, keepdims=True)
+diff -ru a/mlx_vlm/models/qwen3_omni_moe/talker.py b/mlx_vlm/models/qwen3_omni_moe/talker.py
+--- a/mlx_vlm/models/qwen3_omni_moe/talker.py
++++ b/mlx_vlm/models/qwen3_omni_moe/talker.py
+@@ -443,6 +443,7 @@
+ 
+         k = self.top_k
+         inds = mx.argpartition(routing_weights, kth=-k, axis=-1)[..., -k:]
++        inds = mx.stop_gradient(inds)
+         scores = mx.take_along_axis(routing_weights, inds, axis=-1)
+ 
+         if self.norm_topk_prob:
+diff -ru a/mlx_vlm/models/qwen3_vl_moe/language.py b/mlx_vlm/models/qwen3_vl_moe/language.py
+--- a/mlx_vlm/models/qwen3_vl_moe/language.py
++++ b/mlx_vlm/models/qwen3_vl_moe/language.py
+@@ -156,6 +156,7 @@
+ 
+         k = self.top_k
+         inds = mx.argpartition(gates, kth=-k, axis=-1)[..., -k:]
++        inds = mx.stop_gradient(inds)
+         scores = mx.take_along_axis(gates, inds, axis=-1)
+         if self.norm_topk_prob:
+             scores /= mx.sum(scores, axis=-1, keepdims=True)

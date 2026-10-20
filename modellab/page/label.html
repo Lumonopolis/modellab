@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Labelling · ModelLab</title>
+  <link rel="stylesheet" href="/page/label.css">
+  <script src="/page/label.js" defer></script>
+</head>
+<body>
+  <header class="bar">
+    <h1 id="title">Loading…</h1>
+    <div class="bar-tools">
+      <span id="held"></span>
+      <span id="progress" aria-live="polite"></span>
+      <button id="help" type="button" title="Instructions and keys (?)" aria-label="Instructions and keys">?</button>
+    </div>
+  </header>
+  <div id="problem" role="alert" hidden><span></span><button id="problem-action" type="button"></button><button id="problem-other" type="button" hidden></button></div>
+  <main id="main">
+    <section id="empty" class="state" hidden><h2>Nothing to label</h2><p>This set has no items waiting for you.</p></section>
+    <section id="done" class="state" hidden>
+      <h2>All answered</h2>
+      <p>Every answer is saved. You can go back and change any of them.</p>
+      <button id="last" type="button">Go back to the last item</button>
+    </section>
+    <section id="work" hidden>
+      <div id="panes"></div>
+      <div id="item-questions" class="questions"></div>
+      <details id="details"><summary aria-keyshortcuts="d"><kbd aria-hidden="true">D</kbd> More</summary><div id="detail-questions" class="questions"></div></details>
+    </section>
+  </main>
+  <footer class="dock" id="dock" hidden>
+    <button id="previous" type="button" title="Previous item (Backspace)" aria-keyshortcuts="Backspace">← Back</button>
+    <span id="position"></span>
+    <span id="hint"></span>
+    <button id="skip" type="button" title="Skip (S)" aria-keyshortcuts="s">Skip <kbd aria-hidden="true">S</kbd></button>
+    <button id="save" type="button" class="primary" aria-keyshortcuts="Enter">Save &amp; next <kbd aria-hidden="true">Enter</kbd></button>
+  </footer>
+  <dialog id="viewer" aria-labelledby="viewer-title">
+    <header><h2 id="viewer-title"></h2><div><button id="zoom" type="button" aria-pressed="false">Zoom 2×</button><button id="close-viewer" type="button">Close <kbd aria-hidden="true">Esc</kbd></button></div></header>
+    <div id="viewer-body"></div>
+  </dialog>
+  <dialog id="guide" aria-labelledby="guide-title">
+    <header><h2 id="guide-title">Instructions</h2><button id="close-guide" type="button">Close <kbd aria-hidden="true">Esc</kbd></button></header>
+    <div id="guide-body"></div>
+  </dialog>
+</body>
+</html>
