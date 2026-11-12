@@ -1,8 +1,9 @@
 # ModelLab stack
 
 What ModelLab uses for each layer, and why. Checked against upstream source and
-releases on 2026-09-28; the gold-set rows again on 2026-09-30. Update a row when
-a choice changes; keep the reason.
+releases on 2026-09-28; the gold-set rows again on 2026-09-30; the MLX and Inspect AI
+rows, Known limits and Patches again on 2026-11-12. Update a row when a choice
+changes; keep the reason.
 
 ## Choices
 
@@ -38,54 +39,32 @@ a choice changes; keep the reason.
 - MLX: the memory limit is soft and the cache limit defaults to it. Set both per
   job. MLX-LM, MLX-VLM and mlx-lm-lora raise the wired limit themselves; ModelLab
   clamps these calls.
-- MLX-LM: `--clear-cache-threshold` is parsed but not applied (0.31.3). Set it
-  through the Python API.
+- MLX-LM 0.32.2: `--clear-cache-threshold` is parsed but not applied
+  (ml-explore/mlx-lm#2000, merged 2026-10-29, not yet released). Set it through the Python API.
 
 ## Known limits
 
 - MLX-LM went five months without a release (0.31.3, 2026-04-22, to 0.32.0, 2026-10-01).
-  Pin git commits when needed. ModelLab's environment still has 0.31.3.
-- MLX trainers "resume" by reloading weights only; optimizer state restarts. ModelLab's
-  training recipe resumes exactly (`docs/training.md`).
+  Pin git commits when needed.
+- MLX trainers "resume" by reloading weights only; optimizer state restarts (MLX-VLM 0.7.12's
+  `--resume-adapter-file` says so). ModelLab's training recipe resumes exactly
+  (`docs/training.md`).
 - mlx-lm-lora, mlx-guard and Kev each have one maintainer or are very young.
 - macOS has no kernel per-process memory cap without root. `taskpolicy -m` and a
   spawn-time jetsam limit did not stop a 409 MB child (2026-09-29).
 - MLX GPU buffers count in a process's physical footprint, also with the wired
   limit raised (2026-09-29, M4 Max, macOS 26.4.1, MLX 0.30.3). An outside guard
   can see them.
-- 2026-10-01: LoRA training of mixture-of-experts models fails on the first backward step
-  with "[gather_axis] Cannot calculate VJP with respect to indices" (Qwen3.6-35B-A3B,
-  on the M5).
-  - Cause: MLX 0.32.1 (PR #3820) turned the silent zero gradient through gather indices into
-    this error, as intended. MoE routers that pick experts with `argpartition` and gather
-    their scores now need `mx.stop_gradient` on the indices. MLX 0.32.0 trains the same code.
-  - MLX-LM fixed its routers that way (#1787, #1856), released in 0.32.0 on 2026-10-01.
-    ModelLab's environment still has MLX-LM 0.31.3, so its MoE text models fail too.
-  - MLX-VLM 0.7.3 and 0.7.4 have not; reported as Blaizzy/mlx-vlm#2407, fixed in 0.7.5
-    (2026-10-05, #2409). ModelLab's patch for 0.7.3 was applied on both Macs on 2026-10-01;
-    runs record it in `libraries.jsonl`.
-  - Checked: on the real model's architecture, shrunk, one LoRA step fails as shipped and
-    trains with only the router line changed; the forward pass is unchanged. On MLX 0.32.2
-    with the fix, gradients equal MLX 0.32.0's without it (bit for bit) and match finite
-    differences.
-  - ModelLab patches MLX-VLM 0.7.3's Qwen MoE routers (see Patches). With the patch, the
-    real Qwen3.6-35B-A3B 8-bit trains (a fit check on the M4 Max: 5,529 tokens with two
-    images, rank 16, about 96 s per step at 57.7 tokens/s, 60.4 GB peak, loss 0.659). The
-    dense 27B 8-bit trains at about 20 tokens/s on the M4 Max and 33.5 on the M5, 55.5 GB
-    peak on the same example (42 GB at 4-bit).
-- 2026-10-01, MLX-VLM 0.7.3 `sft_trainer`: the last, partial report of a run divides
-  `steps_per_report` (not the steps actually run) by the elapsed time, so a one-step fit check
-  shows `It/sec` ten times too high with the default report interval of 10. Estimate step time
-  from `Trained Tokens` / `Tokens/sec` instead.
-- 2026-10-20, MLX-LM 0.31.3 `server`: `--adapter-path` is ignored, because `load` looks the
-  adapter up after replacing the model name with its path (ml-explore/mlx-lm#1745, fixed in
-  0.32). `modellab serve --adapter` serves the base text model until the environment moves.
-- 2026-10-02, MLX-VLM 0.7.3 `BPEStreamingDetokenizer` (Qwen's tokenizers): `add_token` passes
-  text on only when the next token starts with a space, so `stream_generate`'s `.text` holds
-  back everything since the last space until `finalize`. Compact JSON has almost no spaces:
-  after 200 tokens of a training reply, 175 of 453 characters had arrived. A sampler that
-  stops on a pattern in `.text` stops late or never. Decode the collected `result.token` ids
-  instead.
+- MLX 0.32.1 and later refuse a gradient through gather indices ("[gather_axis] Cannot
+  calculate VJP with respect to indices"). A mixture-of-experts router that picks experts with
+  `argpartition` needs `mx.stop_gradient` on the indices to train. MLX-LM 0.32.0 and MLX-VLM
+  0.7.5 fixed their MoE routers; check a new MoE architecture with a fit step.
+- MLX-VLM 0.7.12 `SPMStreamingDetokenizer` (Gemma-family tokenizers): `stream_generate`'s
+  `.text` holds back everything since the last space until `finalize`; compact JSON arrives at
+  the end. A sampler that stops on a pattern in `.text` stops late or never; decode the token
+  ids. Qwen's byte-level BPE tokenizers stream per token since 0.7.11.
+- MLX-LM 0.32.2 `server`: `--adapter-path` applies only to requests for `default_model`. A
+  request that names the model's path loads the base model.
 
 ## Patches
 
@@ -95,9 +74,7 @@ upstream project or its sibling project has already accepted. Such a patch lives
 to that exact version, on every host, and stops when the version changes; every run records it
 beside the library version (`libraries.jsonl`); it is deleted once a release carries the fix.
 
-| Patch | Fixes | Accepted upstream as | Delete when |
-|---|---|---|---|
-| `mlx-vlm-0.7.3-moe-router-stop-gradient.patch` | LoRA training of Qwen MoE models (qwen3_5_moe, qwen3_moe, qwen3_next, qwen3_vl_moe, qwen3_omni_moe) on MLX 0.32.1 and later; see Known limits | MLX-LM #1787 and #1856; MLX-VLM #2409, released in 0.7.5 | the environment moves to MLX-VLM 0.7.5 or later |
+None at present.
 
 ## Open checks
 

@@ -32,9 +32,9 @@ from modellab import recipe
 model_path, mode = sys.argv[1], sys.argv[2]
 for name, (w, h) in (("a.png", (96, 64)), ("b.png", (64, 64))):
     Image.fromarray(np.linspace(0, 255, w * h * 3).reshape(h, w, 3).astype("uint8")).save(name)
-training = mode in ("fit", "train", "measure", "failing", "straight", "interrupted", "torn", "other", "small",
+training = mode in ("fit", "ownloss", "train", "measure", "failing", "straight", "interrupted", "torn", "other", "small",
                     "undeclared", "nolook", "twice", "hidden", "noallowed")
-count = {"fit": 1, "straight": 3, "interrupted": 3, "torn": 3, "other": 3}.get(mode, 4) if training else 1
+count = {"fit": 1, "ownloss": 1, "straight": 3, "interrupted": 3, "torn": 3, "other": 3}.get(mode, 4) if training else 1
 model, processor = load(model_path, lazy=not training)
 config = model.config.__dict__
 reply = '{"crop":{"box":[24,89,997,956],"angle":0.0},"treatment":"colour"}'
@@ -62,6 +62,13 @@ if mode == "fit":
     generated = list(stream_generate(model, processor, base(items[0]) + '{"', image=["a.png", "b.png"], max_tokens=1))
     assert np.array(made).size == generated[-1].prompt_tokens, (np.array(made).size, generated[-1].prompt_tokens)
     recipe.train(model, processor, dataset, prompts, "adapter", fit=True)
+elif mode == "ownloss":  # a project's loss written for MLX-VLM 0.7.3, which returned a scalar
+    from mlx_vlm.trainer.vlm.sft.trainer import vision_language_loss_fn
+
+    def loss(model, batch, **options):
+        Path("loss-used").touch()
+        return vision_language_loss_fn(model, batch, **options)[0]
+    recipe.train(model, processor, dataset, prompts, "adapter", fit=True, loss=loss)
 elif mode == "train":  # 4 examples, 2 epochs, accumulate 3: 9 steps; checkpoints at 6 (the default) and 9
     Path("adapter").mkdir()
     Path("adapter/unrelated.safetensors").write_text("not the recipe's")
@@ -197,6 +204,14 @@ def test_the_fit_step_checks_prompts_then_trains_one_step_and_keeps_no_adapter(v
     fit = json.loads((path / "out" / "fit.json").read_text())
     assert fit["fit_example"] == "ex0" and fit["steps"] == 1 and fit["peak_memory_gb"] > 0 and fit["tokens"] > 0
     assert not (Path(json.loads((path / "run.json").read_text())["cwd"]) / "adapter").exists()
+
+
+@needs_vlm
+def test_a_project_loss_that_returns_a_scalar_trains(vlm_job):
+    path, status, log = vlm_job("ownloss", budget="16G")
+    assert status["exit_code"] == 0, log
+    assert (Path(json.loads((path / "run.json").read_text())["cwd"]) / "loss-used").exists()
+    assert json.loads((path / "out" / "fit.json").read_text())["steps"] == 1
 
 
 @needs_vlm

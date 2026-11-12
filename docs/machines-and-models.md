@@ -329,14 +329,11 @@ waits until the server answers and prints its URL; `ps` shows the URL while it
 runs, and `stop` ends it. A program finds a server by its alias in `ps --json`:
 the record whose `state` is `running` and whose `serve.model` is the alias has
 the address in `serve.url`. Queued and ended servers keep `serve` too.
-`--adapter` loads a LoRA adapter. For a remote host, forward the port with
+`--adapter` loads a LoRA adapter. A text server applies it only to requests whose
+`model` is `default_model` (or omitted); a request that names the model's path, as
+`/v1/models` lists it, gets the base model (MLX-LM 0.32.2). A vision server applies it
+for the model's path. For a remote host, forward the port with
 `ssh -N -L <port>:127.0.0.1:<port> <host>`.
-
-Known limit: MLX-LM 0.31.3's server ignores `--adapter-path` (it looks the
-adapter up under the wrong key; ml-explore/mlx-lm#1745, fixed in 0.32), so
-`--adapter` has no effect on text models until the environment moves past
-0.31.3. Check an adapter with `examples/ask.py` meanwhile. Vision servers use
-MLX-VLM's own option, not checked here.
 
 ## Limits
 

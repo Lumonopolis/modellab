@@ -19,10 +19,11 @@ LOCAL_API_KEY=none <root>/envs/eval/bin/inspect eval tasks.py@my_task \
 ```
 
 - Sample ids are the gold set's item ids, so results join to items.
+- A text model served with `--adapter` applies it only to requests for `default_model`
+  (`--model openai-api/local/default_model`). A request that names the model's path gets the
+  base model, silently (MLX-LM 0.32.2). Vision servers apply it for the model's path.
 - Images are given by path. `--no-log-images` (or `log_images=False`) keeps them out of the
   log; the log names the files instead.
-- Name the task (`tasks.py@my_task`): Inspect 0.3.273 fails on an absolute task-file path
-  without one.
 - A scorer that reads an answer from a reply must find it wherever the reply puts it
   ("Picture A is the finished edit." answers "a"). The report shows each raw reply next to the
   parsed answer, so a scorer that misreads is seen at once.

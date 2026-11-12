@@ -124,13 +124,15 @@ It does not check:
 ## The fit step
 
 `train(..., fit=True)` runs the prompt check, then one training step on the
-example with the most tokens, timed by the recipe's own clock. MLX-VLM's
-`It/sec` is wrong for a short last report. It reports the seconds and the peak
-memory, to the job's log and to `out/fit.json`. Its adapter goes to a temporary
-folder and is deleted, so it can never be taken for a trained one. With a
-`measure`, it runs that once after the step, so the peak includes generation
-during training. Compare the peak with each host's allowance (RAM minus
-`reserve`) before a long run.
+example with the most tokens. It reports the seconds and the peak memory, to
+the job's log and to `out/fit.json`. Its adapter goes to a temporary folder and
+is deleted, so it can never be taken for a trained one. With a `measure`, it
+runs that once after the step, so the peak includes generation during training.
+Compare the peak with each host's allowance (RAM minus `reserve`) before a long
+run. Measured on 2026-10-01 (M4 Max, MLX-VLM 0.7.3, one example of 5,529 tokens
+with two images, rank 16): Qwen3.6-35B-A3B 8-bit, 60.4 GB peak and about 96 s
+per step; dense Qwen3.8-27B 8-bit, 55.5 GB (42 GB at 4-bit), about 20 tokens/s
+(33.5 on an M5).
 
 ## Training
 
@@ -139,8 +141,7 @@ during training. Compare the peak with each host's allowance (RAM minus
   such as Qwen3.6-35B-A3B that includes the router and shared-expert gates, not
   the routed experts. It runs MLX-VLM's trainer with batch size 1, the dataset's
   completion mask, and the project's `loss` when given.
-- The learning rate is constant, as in MLX-VLM's CLI: its trainer does not use
-  `TrainingArgs.warmup_steps`.
+- The learning rate is constant.
 - The steps are rounded up to a whole number of `accumulate` steps. Otherwise
   MLX-VLM drops the examples of a last, partial update.
 - `seed` fixes which examples each segment trains on (a fresh shuffle for each
@@ -201,10 +202,10 @@ optimizer's state.
 
 ## Notes for samplers
 
-- On 2026-10-02 MLX-VLM's `stream_generate` held back the text of compact JSON
-  until the end of generation (`docs/stack.md`, Known limits). A sampler that
-  stops on a pattern in the streamed text stops late or never. Decode the
-  collected token ids instead.
+- With a Gemma-family tokenizer, MLX-VLM's `stream_generate` holds back the
+  text of compact JSON until the end of generation (`docs/stack.md`, Known
+  limits). A sampler that stops on a pattern in the streamed text stops late or
+  never. Decode the collected token ids instead.
 
 ## Small first
 
@@ -236,8 +237,8 @@ Every run ends with a look, on items the project declares (`recipe.Look`).
   the item (or `Look.prompt`), with the same generation settings as the prompt
   check (`generation`, such as `resize_shape`). The default `max_tokens` is 1.5
   times the longest reply in training; without a completion mask the recipe
-  cannot tell, and `max_tokens` must be given. The recipe collects token ids,
-  not MLX-VLM's streamed text. The reply given to `parse` is the prompt's
+  cannot tell, and `max_tokens` must be given. The recipe compares replies by
+  token ids. The reply given to `parse` is the prompt's
   prefill (what follows the chat template's own generation prompt) and what the
   model wrote.
 
