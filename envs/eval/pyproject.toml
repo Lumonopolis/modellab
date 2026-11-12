@@ -6,7 +6,7 @@ name = "modellab-env-eval"
 version = "0"
 requires-python = "==3.14.*"
 dependencies = [
-  "inspect-ai==0.3.273",
+  "inspect-ai==0.3.289",
   "openai>=2",  # Inspect's openai-api provider, for `modellab serve`
 ]
 

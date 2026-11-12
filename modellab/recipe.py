@@ -147,9 +147,8 @@ def train(model, processor, dataset, prompts, out, *, look=REQUIRED, full=False,
     `fit=True` train one step on the longest example into a temporary folder.
 
     The adapters go on the language model's linear layers, as MLX-VLM's own CLI puts them. The
-    learning rate is constant, as there (its TrainingArgs.warmup_steps is not used by its
-    trainer). dataset: an MLX-VLM VisionDataset (or subclass). loss: MLX-VLM's loss_fn
-    signature; its own loss when None. The steps are rounded up to a whole number of
+    learning rate is constant. dataset: an MLX-VLM VisionDataset (or subclass). loss: MLX-VLM's
+    loss_fn signature; its own loss when None. The steps are rounded up to a whole number of
     `accumulate` steps, so no examples are left out of the last update.
 
     Every `save_every` steps (a multiple of `accumulate`; default: one pass, rounded up to one)
@@ -168,7 +167,7 @@ def train(model, processor, dataset, prompts, out, *, look=REQUIRED, full=False,
     import mlx.core as mx
     import mlx.optimizers as optim
     import numpy as np
-    from mlx_vlm.trainer.utils import find_all_linear_names, get_peft_model
+    from mlx_vlm.trainer import get_peft_model
 
     if look is REQUIRED:
         if not fit:
@@ -183,11 +182,12 @@ def train(model, processor, dataset, prompts, out, *, look=REQUIRED, full=False,
     checked = check_prompts(model, processor, dataset, prompts, max_seq_length, **(generation or {}))
     base = _model_digest(model)
     mx.random.seed(seed)  # the adapters' starting values
-    model = get_peft_model(model, find_all_linear_names(model.language_model), rank=rank, alpha=alpha,
-                           dropout=dropout, verbose=False)
+    # Its own choice of layers, in module order: a list of names is applied in that list's order,
+    # and find_all_linear_names lists a set, so the adapters' starting values would vary by process.
+    model = get_peft_model(model, rank=rank, alpha=alpha, dropout=dropout, verbose=False)
     optimizer = optim.Adam(learning_rate=learning_rate)
     if fit:
-        return _fit(model, optimizer, dataset, checked["tokens"], loss, max_seq_length, learning_rate, measure)
+        return _fit(model, optimizer, dataset, checked["tokens"], loss, max_seq_length, measure)
 
     items, out = dataset.dataset, Path(out)
     if not full:
@@ -236,7 +236,7 @@ def train(model, processor, dataset, prompts, out, *, look=REQUIRED, full=False,
         end = min(start + every, steps)
         folder = out / "checkpoints" / f"step-{end:07d}"
         _segment(model, optimizer, dataset, [items[i] for i in order[start:end]], seed + start, loss,
-                 max_seq_length, learning_rate, accumulate, report_every, folder / "adapters.safetensors")
+                 max_seq_length, accumulate, report_every, folder / "adapters.safetensors")
         _checkpoint(model, optimizer, out, folder, end, state, measure)
     result = {"full": full, "steps": steps, "resumed_from": begun, "seconds": round(time.time() - began, 1),
               "peak_memory_gb": round(mx.get_peak_memory() / 1e9, 2), "latest": state["latest"],
@@ -298,9 +298,9 @@ def _images(item):
 
 
 def _replies(model, processor, items, prompt_of, max_tokens, generation):
-    """Greedy replies, by token ids rather than MLX-VLM's streamed text (which holds back text
-    without spaces). The reply is the prompt's prefill (what follows the chat template's
-    generation prompt; None when the prompt does not start with it) and what the model wrote."""
+    """Greedy replies, as token ids, so base and adapter replies compare token by token. The
+    reply is the prompt's prefill (what follows the chat template's generation prompt; None when
+    the prompt does not start with it) and what the model wrote."""
     import mlx.core as mx
     from mlx_vlm import stream_generate
     from mlx_vlm.prompt_utils import apply_chat_template
@@ -464,7 +464,7 @@ def _fenced(text):
     return [fence, text, fence]
 
 
-def _fit(model, optimizer, dataset, tokens, loss, max_seq_length, learning_rate, measure):
+def _fit(model, optimizer, dataset, tokens, loss, max_seq_length, measure):
     """One step on the example with the most tokens, into a temporary folder (a fit adapter
     must never pass for a trained one), then the measure once, so the peak includes both."""
     import mlx.core as mx
@@ -475,9 +475,8 @@ def _fit(model, optimizer, dataset, tokens, loss, max_seq_length, learning_rate,
     with tempfile.TemporaryDirectory() as scratch:
         mx.reset_peak_memory()
         began = time.time()
-        _segment(model, optimizer, dataset, [dataset.dataset[longest]], 0, loss, max_seq_length, learning_rate,
-                 1, 1, Path(scratch) / "adapters.safetensors")
-        # Timed here: MLX-VLM's It/sec divides steps_per_report, not the steps run, by the time.
+        _segment(model, optimizer, dataset, [dataset.dataset[longest]], 0, loss, max_seq_length, 1, 1,
+                 Path(scratch) / "adapters.safetensors")
         result.update(steps=1, seconds=round(time.time() - began, 1))
         if measure:
             result["measure"] = _measured(model, measure)
@@ -488,8 +487,8 @@ def _fit(model, optimizer, dataset, tokens, loss, max_seq_length, learning_rate,
     return result
 
 
-def _segment(model, optimizer, dataset, chosen, seed, loss, max_seq_length, learning_rate, accumulate,
-             report_every, adapter_file):
+def _segment(model, optimizer, dataset, chosen, seed, loss, max_seq_length, accumulate, report_every,
+             adapter_file):
     """MLX-VLM's trainer over `chosen`, with its shuffle and random numbers fixed by `seed`. It
     saves the adapter to `adapter_file` at the end. Its gradient checkpointing wraps the layer
     class each time it is asked, so it is asked once per class in a process."""
@@ -505,7 +504,7 @@ def _segment(model, optimizer, dataset, chosen, seed, loss, max_seq_length, lear
     args = TrainingArgs(batch_size=1, iters=len(chosen), steps_per_report=report_every,
                         steps_per_eval=len(chosen) + 1, steps_per_save=len(chosen) + 1, max_seq_length=max_seq_length,
                         adapter_file=str(adapter_file), grad_checkpoint=not layers <= _WRAPPED,
-                        learning_rate=learning_rate, gradient_accumulation_steps=accumulate)
+                        gradient_accumulation_steps=accumulate)
     _WRAPPED.update(layers)
     mlx_train(model=model, optimizer=optimizer, train_dataset=view, args=args,
               train_on_completions=dataset.train_on_completions, **({"loss_fn": loss} if loss else {}))

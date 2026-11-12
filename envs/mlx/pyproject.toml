@@ -5,9 +5,9 @@ name = "modellab-env-mlx"
 version = "0"
 requires-python = "==3.14.*"
 dependencies = [
-  "mlx>=0.32.2",
-  "mlx-lm>=0.31.3",
-  "mlx-vlm>=0.7.3",
+  "mlx>=0.32.4",
+  "mlx-lm>=0.32.2",
+  "mlx-vlm>=0.7.12",
   "huggingface-hub",
   "numpy>=2.4",          # modellab colour (already here through MLX)
   "pillow>=12.3",        # modellab look: sheets; modellab colour
